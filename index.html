@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homework — Places in Town (Spotlight 4)</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Comic Sans MS', 'Segoe UI', Arial, sans-serif;
+    background: #f0f7ff;
+    color: #2c3e50;
+    margin: 0;
+    padding: 18px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  h1 {
+    text-align: center;
+    color: #2980b9;
+    font-size: 25px;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #7f8c8d;
+    margin: 0 0 22px;
+    font-size: 15px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.07);
+    border-left: 6px solid #3498db;
+  }
+  .card h2 {
+    font-size: 19px;
+    margin: 0 0 6px;
+    color: #2980b9;
+  }
+  .task-desc {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin: 0 0 16px;
+  }
+
+  .word-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .word-card {
+    background: #f7fbff;
+    border: 2px solid #d6e6f2;
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+  }
+  .word-card:hover { border-color: #3498db; transform: translateY(-2px); }
+  .word-card .en {
+    font-size: 17px;
+    font-weight: bold;
+    color: #2980b9;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .word-card .ru {
+    font-size: 14px;
+    color: #95a5a6;
+    display: block;
+    min-height: 20px;
+    transition: color .3s;
+  }
+  .word-card .ru.show { color: #e67e22; font-weight: bold; }
+  .word-card .speaker {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 16px;
+    opacity: 0.6;
+  }
+  .word-card.playing { border-color: #e67e22; background: #fff8e1; }
+  .tap-hint {
+    font-size: 13px;
+    color: #bdc3c7;
+    text-align: center;
+    margin-top: 14px;
+  }
+
+  .match-area { display: flex; gap: 14px; flex-wrap: wrap; }
+  .match-col { flex: 1; min-width: 240px; }
+  .match-item {
+    background: #eef4fa;
+    border: 2px solid #d0dde8;
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+  }
+  .match-item:hover { background: #dbe9f5; }
+  .match-item.selected { background: #ffe9a8; border-color: #f39c12; }
+  .match-item.matched {
+    background: #d4f5e0;
+    border-color: #27ae60;
+    color: #27ae60;
+    cursor: default;
+    opacity: 0.75;
+  }
+  .match-item.shake { animation: shake .35s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .sent {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 16px;
+    background: #f9fcff;
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .sent select {
+    font-family: inherit;
+    font-size: 15px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 2px solid #3498db;
+    background: #fff;
+    color: #2980b9;
+    font-weight: bold;
+    cursor: pointer;
+    min-width: 160px;
+  }
+  .sent select.ok { border-color: #27ae60; background: #eafaf1; color: #27ae60; }
+  .sent select.no { border-color: #e74c3c; background: #fdedec; color: #e74c3c; }
+
+  .gloss {
+    position: relative;
+    color: #e67e22;
+    font-weight: bold;
+    border-bottom: 2px dotted #e67e22;
+    cursor: help;
+  }
+  .gloss::after {
+    content: attr(data-ru);
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c3e50;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 10;
+    font-weight: normal;
+  }
+  .gloss::before {
+    content: '';
+    position: absolute;
+    bottom: 115%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #2c3e50;
+    opacity: 0;
+    transition: opacity .2s;
+    z-index: 10;
+  }
+  .gloss:hover::after,
+  .gloss:hover::before { opacity: 1; }
+
+  .marker {
+    position: relative;
+    background: #eafaf1;
+    color: #27ae60;
+    padding: 1px 8px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: help;
+    border-bottom: 2px dashed #27ae60;
+  }
+  .marker::after {
+    content: 'маркер Present Simple';
+    position: absolute;
+    bottom: 140%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #27ae60;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    z-index: 10;
+    font-weight: normal;
+  }
+  .marker:hover::after { opacity: 1; }
+
+  .btn {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .2s;
+    margin-top: 6px;
+  }
+  .btn:hover { background: #2980b9; }
+  .btn.reset { background: #95a5a6; margin-left: 8px; }
+  .btn.reset:hover { background: #7f8c8d; }
+
+  .result {
+    margin-top: 12px;
+    font-weight: bold;
+    font-size: 15px;
+    min-height: 22px;
+  }
+  .result.good { color: #27ae60; }
+  .result.bad { color: #e74c3c; }
+  .result.mid { color: #e67e22; }
+
+  .memo {
+    background: linear-gradient(135deg, #eafaf1 0%, #f0f9ff 100%);
+    border-left: 6px solid #27ae60;
+  }
+  .memo h2 { color: #27ae60; }
+  .memo-intro {
+    font-size: 15px;
+    margin: 0 0 14px;
+    color: #2c3e50;
+  }
+  .memo-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .memo-word {
+    background: #fff;
+    border: 2px solid #27ae60;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #27ae60;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .memo-word .ru {
+    display: block;
+    font-size: 12px;
+    font-weight: normal;
+    color: #7f8c8d;
+    margin-top: 2px;
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 21px; }
+    .card { padding: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🏙️ Places in Town</h1>
+  <p class="subtitle">Домашняя работа · Spotlight 4 · Module 2</p>
+
+  <div class="card">
+    <h2>1. Новые слова</h2>
+    <p class="task-desc">
+      Нажми на карточку — услышишь слово и увидишь перевод. Послушай каждое слово 2–3 раза и повтори вслух.
+    </p>
+    <div class="word-grid" id="wordGrid"></div>
+    <p class="tap-hint">🔊 — нажми на карточку, чтобы услышать слово</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Соедини слово с переводом</h2>
+    <p class="task-desc">
+      Нажми на английское слово, потом на его перевод. Если пара верная — они станут зелёными.
+    </p>
+    <div class="match-area">
+      <div class="match-col" id="colEn"></div>
+      <div class="match-col" id="colRu"></div>
+    </div>
+    <button class="btn" onclick="checkMatch()">Проверить</button>
+    <button class="btn reset" onclick="resetMatch()">Сбросить</button>
+    <div class="result" id="matchResult"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Вставь слово в предложение</h2>
+    <p class="task-desc">
+      Выбери подходящее слово из списка.<br>
+      💡 Наведи курсор на <span class="gloss" data-ru="подсказка">оранжевое слово</span> — увидишь перевод.
+      А на <span class="marker">зелёное</span> — узнаешь, почему оно важное.
+    </p>
+    <div id="sentBox"></div>
+    <button class="btn" onclick="checkSent()">Проверить</button>
+    <button class="btn reset" onclick="resetSent()">Сбросить</button>
+    <div class="result" id="sentResult"></div>
+  </div>
+
+  <div class="card memo">
+    <h2>📘 Памятка: что такое маркеры Present Simple</h2>
+    <p class="memo-intro">
+      <b>Маркеры</b> — это слова-подсказки. Они говорят нам, что действие происходит
+      <b>обычно, часто, всегда</b> — а не прямо сейчас.
+    </p>
+    <div class="memo-list">
+      <span class="memo-word">always<span class="ru">всегда</span></span>
+      <span class="memo-word">usually<span class="ru">обычно</span></span>
+      <span class="memo-word">often<span class="ru">часто</span></span>
+      <span class="memo-word">sometimes<span class="ru">иногда</span></span>
+      <span class="memo-word">never<span class="ru">никогда</span></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const words = [
+  { en: "hospital",      ru: "больница" },
+  { en: "baker's",       ru: "булочная" },
+  { en: "greengrocer's", ru: "овощной магазин" },
+  { en: "station",       ru: "вокзал" },
+  { en: "garage",        ru: "гараж" },
+  { en: "café",          ru: "кафе" },
+  { en: "theatre",       ru: "театр" },
+  { en: "post office",   ru: "почта" }
+];
+
+function speak(text, cardEl) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-GB';
+  u.rate = 0.8;
+  u.pitch = 1;
+  if (cardEl) {
+    cardEl.classList.add('playing');
+    u.onend = () => cardEl.classList.remove('playing');
+  }
+  window.speechSynthesis.speak(u);
+}
+
+function buildWords() {
+  const grid = document.getElementById('wordGrid');
+  grid.innerHTML = '';
+  words.forEach(w => {
+    const card = document.createElement('div');
+    card.className = 'word-card';
+    card.innerHTML = `
+      <span class="speaker">🔊</span>
+      <span class="en">${w.en}</span>
+      <span class="ru">${w.ru}</span>
+    `;
+    card.onclick = () => {
+      speak(w.en, card);
+      card.querySelector('.ru').classList.add('show');
+    };
+    grid.appendChild(card);
+  });
+}
+buildWords();
+
+let selectedEn = null;
+let selectedRu = null;
+let matchedPairs = 0;
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildMatch() {
+  selectedEn = null; selectedRu = null; matchedPairs = 0;
+  const colEn = document.getElementById('colEn');
+  const colRu = document.getElementById('colRu');
+  colEn.innerHTML = ''; colRu.innerHTML = '';
+
+  shuffle(words).forEach(w => {
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = w.en;
+    d.dataset.key = w.en;
+    d.onclick = () => selectEn(d);
+    colEn.appendChild(d);
+  });
+  shuffle(words).forEach(w => {
+    const d = document.createElement('div');
+    d.className = 'match-item';
+    d.textContent = w.ru;
+    d.dataset.key = w.en;
+    d.onclick = () => selectRu(d);
+    colRu.appendChild(d);
+  });
+  document.getElementById('matchResult').textContent = '';
+}
+
+function selectEn(el) {
+  if (el.classList.contains('matched')) return;
+  document.querySelectorAll('#colEn .match-item').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedEn = el;
+  speak(el.dataset.key, null);
+  tryPair();
+}
+function selectRu(el) {
+  if (el.classList.contains('matched')) return;
+  document.querySelectorAll('#colRu .match-item').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedRu = el;
+  tryPair();
+}
+function tryPair() {
+  if (!selectedEn || !selectedRu) return;
+  const en = selectedEn, ru = selectedRu;
+  if (en.dataset.key === ru.dataset.key) {
+    en.classList.remove('selected');
+    ru.classList.remove('selected');
+    en.classList.add('matched');
+    ru.classList.add('matched');
+    matchedPairs++;
+    selectedEn = null; selectedRu = null;
+  } else {
+    en.classList.add('shake');
+    ru.classList.add('shake');
+    setTimeout(() => {
+      en.classList.remove('shake','selected');
+      ru.classList.remove('shake','selected');
+      selectedEn = null; selectedRu = null;
+    }, 400);
+  }
+}
+function checkMatch() {
+  const res = document.getElementById('matchResult');
+  if (matchedPairs === words.length) {
+    res.className = 'result good';
+    res.textContent = '🎉 Отлично! Все пары соединены верно!';
+  } else if (matchedPairs === 0) {
+    res.className = 'result mid';
+    res.textContent = 'Пока ничего не соединено. Попробуй ещё!';
+  } else {
+    res.className = 'result mid';
+    res.textContent = `Соединено верно: ${matchedPairs} из ${words.length}. Продолжай!`;
+  }
+}
+function resetMatch() { buildMatch(); }
+buildMatch();
+
+const sentences = [
+  {
+    html: 'I buy <span class="gloss" data-ru="хлеб">bread</span> at the',
+    answer: "baker's",
+    options: ["baker's", "hospital", "station"]
+  },
+  {
+    html: 'My mum is a doctor. She <span class="marker">always</span> works at the',
+    answer: 'hospital',
+    options: ['hospital', 'theatre', 'garage']
+  },
+  {
+    html: 'The <span class="gloss" data-ru="актёр">actor</span> <span class="marker">usually</span> works at the',
+    answer: 'theatre',
+    options: ['theatre', 'café', 'post office']
+  },
+  {
+    html: 'I <span class="marker">often</span> buy apples and oranges at the',
+    answer: "greengrocer's",
+    options: ["greengrocer's", "baker's", 'station']
+  },
+  {
+    html: 'The train is <span class="marker">sometimes</span> at the',
+    answer: 'station',
+    options: ['station', 'garage', 'café']
+  },
+  {
+    html: 'The car is in the',
+    answer: 'garage',
+    options: ['garage', 'station', 'hospital']
+  },
+  {
+    html: 'We <span class="marker">never</span> eat at the',
+    answer: 'café',
+    options: ['café', 'theatre', "greengrocer's"]
+  },
+  {
+    html: 'The postman works at the',
+    answer: 'post office',
+    options: ['post office', "baker's", 'hospital']
+  }
+];
+
+function buildSent() {
+  const box = document.getElementById('sentBox');
+  box.innerHTML = '';
+
+  sentences.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'sent';
+    const sel = document.createElement('select');
+    sel.id = 'sel' + i;
+    const opts = shuffle(s.options);
+    sel.innerHTML = '<option value="">— выбери —</option>' +
+      opts.map(o => `<option value="${o}">${o}</option>`).join('');
+    div.innerHTML = `<span>${i+1}. ${s.html}</span>`;
+    div.appendChild(sel);
+    div.insertAdjacentHTML('beforeend', '<span>.</span>');
+    box.appendChild(div);
+  });
+  document.getElementById('sentResult').textContent = '';
+}
+
+function checkSent() {
+  let ok = 0, done = 0;
+  sentences.forEach((s, i) => {
+    const sel = document.getElementById('sel' + i);
+    sel.classList.remove('ok','no');
+    if (!sel.value) return;
+    done++;
+    if (sel.value === s.answer) { sel.classList.add('ok'); ok++; }
+    else sel.classList.add('no');
+  });
+  const res = document.getElementById('sentResult');
+  if (done === 0) {
+    res.className = 'result mid';
+    res.textContent = 'Сначала выбери слова.';
+  } else if (ok === sentences.length) {
+    res.className = 'result good';
+    res.textContent = '🎉 Молодец! Все предложения верные!';
+  } else if (ok >= sentences.length / 2) {
+    res.className = 'result mid';
+    res.textContent = `Верно ${ok} из ${sentences.length}. Хорошо! Проверь красные.`;
+  } else {
+    res.className = 'result bad';
+    res.textContent = `Верно ${ok} из ${sentences.length}. Повтори слова в блоке 1 и попробуй снова.`;
+  }
+}
+function resetSent() { buildSent(); }
+buildSent();
+</script>
+</body>
+</html>
